@@ -7,7 +7,9 @@
 #include "main.h"
 #include "camera.h"
 #include <time.h>
-#include "instancing.h"
+#include "particle.h"
+#include "debugproc.h"
+#include "meshfield.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -33,7 +35,7 @@ void Draw(void);
 //*****************************************************************************
 LPDIRECT3D9			g_pD3D = NULL;			// Direct3D オブジェクト
 LPDIRECT3DDEVICE9	g_pD3DDevice = NULL;	// Deviceオブジェクト(描画に必要)
-static D3DXCOLOR backColor = D3DCOLOR_RGBA(160, 216, 239, 255);
+static D3DXCOLOR backColor = D3DCOLOR_RGBA(50, 50, 50, 255);
 #ifdef _DEBUG
 int					g_nCountFPS;			// FPSカウンタ
 #endif
@@ -134,6 +136,8 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 			if((dwCurrentTime - dwExecLastTime) >= (1000 / 60))
 			{
+				PrintDebugProc("FPS:%d\n", g_nCountFPS);
+
 				dwExecLastTime = dwCurrentTime;
 
 				// 更新処理
@@ -300,7 +304,11 @@ HRESULT Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 
 	// カメラの初期化
 	InitCamera();
-	InitInstancing(0);
+	InitParticle();
+	InitDebugProc();
+	InitMeshField(D3DXVECTOR3(0.0f, -100.0f, 500.0f), D3DXVECTOR3(0.0f, 0.0f, 0.0f),
+		128, 128, 50.0f, 50.0f);
+
 	return S_OK;
 }
 
@@ -309,7 +317,9 @@ HRESULT Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 //=============================================================================
 void Uninit(void)
 {
-	UninitInstancing();
+	UninitParticle();
+	UninitDebugProc();
+	UninitMeshField();
 
 	if(g_pD3DDevice != NULL)
 	{// デバイスの開放
@@ -330,8 +340,10 @@ void Uninit(void)
 //=============================================================================
 void Update(void)
 {
+	UpdateDebugProc();
 	UpdateCamera();
-	UpdateInstancing();
+	UpdateParticle();
+	UpdateMeshField();
 }
 
 //=============================================================================
@@ -348,7 +360,9 @@ void Draw(void)
 		// カメラの設定
 		SetCamera();
 
-		DrawInstancing();
+		DrawMeshField();
+		DrawParticle();
+		DrawDebugProc();
 
 		// Direct3Dによる描画の終了
 		g_pD3DDevice->EndScene();

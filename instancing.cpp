@@ -15,7 +15,7 @@
 ***************************************/
 struct VTX
 {
-	float x, y;
+	float x, y, z;
 	float u, v;
 };
 
@@ -33,14 +33,13 @@ struct COLOR
 {
 	float r, g, b, a;
 };
-
 /**************************************
 ƒOƒ[ƒoƒ‹•Ï”
 ***************************************/
 const float screenW = 640.0f;
 const float screenH = 480.0f;
 const int texPx = 64;
-const int tipPx = 16;
+const int tipPx = 64;
 const float u = (float)tipPx / texPx;
 const int timNumInTex = texPx / tipPx;
 const int W = 640 / tipPx;
@@ -84,8 +83,8 @@ void InitInstancing(int num)
 
 	for (int i = 0; i < tipNum; i++)
 	{
-		uv[i].u = u * (rand() % timNumInTex);
-		uv[i].v = u * (rand() % timNumInTex);
+		uv[i].u = 0;
+		uv[i].v = 0;
 
 		color[i].r = color[i].g = color[i].b  = 1.0f - (float)i / tipNum;;
 		color[i].a = 1.0f;
@@ -132,7 +131,7 @@ void InitInstancing(int num)
 		return;
 	}
 
-	texture = CreateTextureFromFile((LPSTR)"tips.bmp", pDevice);
+	texture = CreateTextureFromFile((LPSTR)"explosionFlare.png", pDevice);
 
 }
 

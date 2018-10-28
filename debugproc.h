@@ -1,26 +1,22 @@
 //=============================================================================
 //
-// カメラ処理 [camera.h]
+// デバッグ表示処理 [debugproc.h]
 // Author : 
 //
 //=============================================================================
-#ifndef _CAMERA_H_
-#define _CAMERA_H_
+#ifndef _DEBUGPROC_H_
+#define _DEBUGPROC_H_
 
 #include "main.h"
 
 //*****************************************************************************
 // プロトタイプ宣言
 //*****************************************************************************
-HRESULT InitCamera(void);
-void UninitCamera(void);
-void UpdateCamera(void);
+HRESULT InitDebugProc(void);
+void UninitDebugProc(void);
+void UpdateDebugProc(void);
+void DrawDebugProc(void);
 
-void SetCamera(void);
+void PrintDebugProc(const char *fmt,...);
 
-D3DXVECTOR3 GetRotCamera(void);
-D3DXMATRIX GetMtxView(void);
-D3DXMATRIX GetMtxProjection(void);
-void GetInvCameraRotMtx(D3DXMATRIX *mtx);
-D3DXVECTOR3 GetCameraPos(void);
 #endif
