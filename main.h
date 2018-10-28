@@ -35,6 +35,8 @@
 // ３Ｄポリゴン頂点フォーマット( 頂点座標[3D] / 法線 / 反射光 / テクスチャ座標 )
 #define	FVF_VERTEX_3D	(D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_TEX1)
 
+#define FVF_PARTICLEVTX (D3DFVF_XYZ | D3DFVF_TEX1)
+
 #define SCREEN_WIDTH	(640)				// ウインドウの幅
 #define SCREEN_HEIGHT	(480)				// ウインドウの高さ
 #define SCREEN_CENTER_X	(SCREEN_WIDTH / 2)	// ウインドウの中心Ｘ座標

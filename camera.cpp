@@ -39,7 +39,7 @@ D3DXMATRIX		g_mtxProjection;			// プロジェクションマトリックス
 //=============================================================================
 HRESULT InitCamera(void)
 {
-	cameraPos = D3DXVECTOR3(0.0f, 0.0f, -100.0f);
+	cameraPos = D3DXVECTOR3(0.0f, 100.0f, -100.0f);
 	cameraAt = D3DXVECTOR3(0.0f, 0.0f, 200.0f);
 	g_posCameraU = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
 	g_posCameraPDest = D3DXVECTOR3(0.0f, 200.0f, -200.0f);
@@ -117,6 +117,11 @@ D3DXVECTOR3 GetRotCamera(void)
 D3DXMATRIX GetMtxView(void)
 {
 	return g_mtxView;
+}
+
+D3DXMATRIX GetMtxProjection(void)
+{
+	return g_mtxProjection;
 }
 
 //=============================================================================
