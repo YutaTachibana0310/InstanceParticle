@@ -1,5 +1,4 @@
 texture tex;
-//float4x4 world;
 float4x4 mtxView;
 float4x4 mtxProj;
 

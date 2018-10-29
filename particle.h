@@ -21,6 +21,11 @@ typedef struct
 	bool active = false;
 	int cntFrame = 0;
 	D3DXVECTOR3 pos;
+	D3DXVECTOR3 moveDir;
+	float speed;
+	int lifeFrame;
+	float scale;
+
 }PARTICLE;
 
 void InitParticle(void);

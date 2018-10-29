@@ -13,7 +13,7 @@
 #define	VIEW_ASPECT			((float)SCREEN_WIDTH / (float)SCREEN_HEIGHT)	// ビュー平面のアスペクト比
 #define	VIEW_NEAR_Z			(00.0f)					// ビュー平面のNearZ値
 #define	VIEW_FAR_Z			(20000.0f)				// ビュー平面のFarZ値
-#define	VALUE_MOVE_CAMERA	(20.0f)					// カメラの移動量
+#define	VALUE_MOVE_CAMERA	(0.0f)					// カメラの移動量
 #define	VALUE_ROTATE_CAMERA	(D3DX_PI * 0.01f)		// カメラの回転量
 
 //*****************************************************************************
@@ -40,7 +40,7 @@ D3DXMATRIX		g_mtxProjection;			// プロジェクションマトリックス
 HRESULT InitCamera(void)
 {
 	cameraPos = D3DXVECTOR3(0.0f, 100.0f, -100.0f);
-	cameraAt = D3DXVECTOR3(0.0f, 0.0f, 200.0f);
+	cameraAt = D3DXVECTOR3(0.0f, 90.0f, 200.0f);
 	g_posCameraU = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
 	g_posCameraPDest = D3DXVECTOR3(0.0f, 200.0f, -200.0f);
 	g_posCameraRDest = D3DXVECTOR3(0.0f, 0.0f, 0.0f);

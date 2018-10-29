@@ -1,17 +1,20 @@
 #include "particle.h"
 #include "camera.h"
+#include "debugproc.h"
 
-#define PARTICLE_MAX (2048)
+#define PARTICLE_MAX (1024*16)
 #define PARTICLE_TEXNAME "explosionFlare.png"
-#define PARTICLE_SIZE (64)
+#define PARTICLE_LUMINETEX	"explosionLumine.png"
+#define PARTICLE_SIZE (16)
 #define USE_SHADER (1)
+#define PARTICLE_RANGE	(2000)
 
 static D3DXMATRIX pos[PARTICLE_MAX];
 static COLOR vtxColor[PARTICLE_MAX];
 static UV vtxUV[PARTICLE_MAX];
 
 static PARTICLE_VTX vtx[4] = {
-#if 1
+#if 0
 	{-PARTICLE_SIZE, 0.0f, PARTICLE_SIZE, 0.0f, 0.0f},
 	{PARTICLE_SIZE, 0.0f, PARTICLE_SIZE, 1.0f, 0.0f},
 	{-PARTICLE_SIZE, 0.0f, -PARTICLE_SIZE,  0.0f, 1.0f},
@@ -26,27 +29,32 @@ static PARTICLE_VTX vtx[4] = {
 
 static LPDIRECT3DVERTEXBUFFER9 vtxBuff = NULL, uvBuff = NULL, posBuff = NULL, colorBuff = NULL;
 static LPDIRECT3DVERTEXDECLARATION9 declare;
-static LPDIRECT3DTEXTURE9 texture;
+static LPDIRECT3DTEXTURE9 texture, lumine;
 static LPD3DXEFFECT effect;
 static LPDIRECT3DINDEXBUFFER9 indexBuff;
-
 static PARTICLE particle[PARTICLE_MAX];
+static int cntParticle = 0;
 
 void CopyVtxBuff(unsigned size, void *src, LPDIRECT3DVERTEXBUFFER9 buff);
+float RandomRange(float min, float max);
+void SetParticle(void);
 
 LPDIRECT3DVERTEXBUFFER9 hoge = NULL;
 
 void InitParticle(void)
 {
 	LPDIRECT3DDEVICE9 pDevice = GetDevice();
-
+	float offset = PARTICLE_RANGE / 2;
 	//配列初期化
 	for (int i = 0; i < PARTICLE_MAX; i++)
 	{
-		particle[i].pos = D3DXVECTOR3(rand() % 1000 - 500, rand() % 1000 - 500, rand() % 1000 + 500);
+		particle[i].pos = D3DXVECTOR3(-99999, -99999, -99999);
 		D3DXMatrixIdentity(&pos[i]);
 		vtxUV[i].u = vtxUV[i].v = 0.0f;
-		vtxColor[i].r = vtxColor[i].g = vtxColor[i].g = vtxColor[i].a = 1.0f;
+		vtxColor[i].r = vtxColor[i].g = vtxColor[i].g = 1.0f;
+		vtxColor[i].a = 0.0f;
+
+		particle[i].active = false;
 	}
 
 	//頂点バッファ作成
@@ -124,6 +132,8 @@ void InitParticle(void)
 
 	//テクスチャ読み込み
 	texture = CreateTextureFromFile((LPSTR)PARTICLE_TEXNAME, pDevice);
+	lumine = CreateTextureFromFile((LPSTR)PARTICLE_LUMINETEX, pDevice);
+	
 }
 
 void UninitParticle(void)
@@ -141,19 +151,45 @@ void UninitParticle(void)
 void UpdateParticle(void)
 {
 	PARTICLE *ptr = &particle[0];
-	D3DXMATRIX mtxTranslate;
+	D3DXMATRIX mtxTranslate, mtxScale;
+
+	for (int i = 0; i < 80; i++)
+	{
+		SetParticle();
+	}
+
 
 	for (int i = 0; i < PARTICLE_MAX; i++, ptr++)
 	{
+#if 1
+		if (!ptr->active)
+		{
+			continue;
+		}
+
+		ptr->pos += ptr->moveDir * ptr->speed;
+		vtxColor[i].a = (1.0f - (float)ptr->cntFrame / ptr->lifeFrame) * 0.5f;
+		ptr->cntFrame++;
+
+		if (ptr->cntFrame == ptr->lifeFrame)
+		{
+			ptr->pos.z = -10000.0f;
+			cntParticle--;
+			ptr->active = false;
+		}
+#endif
 		D3DXMatrixIdentity(&pos[i]);
-
-		GetInvCameraRotMtx(&pos[i]);
-
+		D3DXMatrixScaling(&mtxScale, ptr->scale, ptr->scale, ptr->scale);
+		D3DXMatrixMultiply(&pos[i], &pos[i], &mtxScale);
+		//GetInvCameraRotMtx(&pos[i]);
 		D3DXMatrixTranslation(&mtxTranslate, ptr->pos.x, ptr->pos.y, ptr->pos.z);
 		D3DXMatrixMultiply(&pos[i], &pos[i], &mtxTranslate);
 	}
 
 	CopyVtxBuff(sizeof(D3DXMATRIX) * PARTICLE_MAX, pos, posBuff);
+	CopyVtxBuff(sizeof(COLOR) * PARTICLE_MAX, vtxColor, colorBuff);
+
+	PrintDebugProc("Particle:%d\n", cntParticle);
 }
 
 void DrawParticle(void)
@@ -162,7 +198,7 @@ void DrawParticle(void)
 
 	D3DXMATRIX world, translate, mtxRot;
 
-	pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
+	pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 	pDevice->SetRenderState(D3DRS_ZWRITEENABLE, false);
 
 #if USE_SHADER
@@ -186,16 +222,22 @@ void DrawParticle(void)
 	effect->SetTexture("tex", texture);
 	effect->SetMatrix("mtxView", &GetMtxView());
 	effect->SetMatrix("mtxProj", &GetMtxProjection());
-	effect->SetMatrix("world", &world);
 
+	pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 4, 0, 2);
+
+	effect->SetTexture("tex", lumine);
+	pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
 	pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 4, 0, 2);
 
 	effect->EndPass();
 	effect->End();
 
+
 	pDevice->SetStreamSourceFreq(0, 1);
 	pDevice->SetStreamSourceFreq(1, 1);
 	pDevice->SetStreamSourceFreq(2, 1);
+
+	pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 
 
 #else
@@ -236,5 +278,33 @@ void CopyVtxBuff(unsigned size, void *src, LPDIRECT3DVERTEXBUFFER9 buff)
 	buff->Lock(0, 0, &p, 0);
 	memcpy(p, src, size);
 	buff->Unlock();
+}
+
+void SetParticle(void)
+{
+	PARTICLE *ptr = &particle[0];
+
+	for (int i = 0; i < PARTICLE_MAX; i++, ptr++)
+	{
+		if (ptr->active)
+		{
+			continue;
+		}
+
+		ptr->moveDir = D3DXVECTOR3(RandomRange(-1.0f, 1.0f), RandomRange(-1.0f, 1.0f), RandomRange(-1.0f, 1.0f));
+		ptr->speed = RandomRange(1.0f, 30.0f);
+		ptr->cntFrame = 0;
+		ptr->pos = D3DXVECTOR3(0.0f, 0.0f, 1000.0f);
+		ptr->lifeFrame = rand() % 120 + 60;
+		ptr->scale = RandomRange(0.5f, 3.0f);
+		ptr->active = true;
+		cntParticle++;
+		return;
+	}
+}
+
+float RandomRange(float min, float max)
+{
+	return rand() % 100 / 100.0f *	(max - min) + min;
 }
 

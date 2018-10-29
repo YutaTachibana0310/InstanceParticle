@@ -35,7 +35,7 @@ void Draw(void);
 //*****************************************************************************
 LPDIRECT3D9			g_pD3D = NULL;			// Direct3D オブジェクト
 LPDIRECT3DDEVICE9	g_pD3DDevice = NULL;	// Deviceオブジェクト(描画に必要)
-static D3DXCOLOR backColor = D3DCOLOR_RGBA(50, 50, 50, 255);
+static D3DXCOLOR backColor = D3DCOLOR_RGBA(155, 200, 255, 255);
 #ifdef _DEBUG
 int					g_nCountFPS;			// FPSカウンタ
 #endif
