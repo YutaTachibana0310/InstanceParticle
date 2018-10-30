@@ -2,29 +2,29 @@
 #include "camera.h"
 #include "debugproc.h"
 
+/**********************************************
+マクロ定義
+**********************************************/
 #define PARTICLE_MAX (1024*16)
 #define PARTICLE_TEXNAME "explosionFlare.png"
 #define PARTICLE_LUMINETEX	"explosionLumine.png"
-#define PARTICLE_SIZE (16)
+#define PARTICLE_SIZE (2)
 #define USE_SHADER (1)
 #define PARTICLE_RANGE	(2000)
+#define USE_ALPHATEST (0)
 
+/**********************************************
+グローバル変数
+**********************************************/
 static D3DXMATRIX pos[PARTICLE_MAX];
 static COLOR vtxColor[PARTICLE_MAX];
 static UV vtxUV[PARTICLE_MAX];
 
 static PARTICLE_VTX vtx[4] = {
-#if 0
-	{-PARTICLE_SIZE, 0.0f, PARTICLE_SIZE, 0.0f, 0.0f},
-	{PARTICLE_SIZE, 0.0f, PARTICLE_SIZE, 1.0f, 0.0f},
-	{-PARTICLE_SIZE, 0.0f, -PARTICLE_SIZE,  0.0f, 1.0f},
-	{PARTICLE_SIZE, 0.0f, -PARTICLE_SIZE, 1.0f, 1.0f}
-#else
 	{-PARTICLE_SIZE, PARTICLE_SIZE, 0.0f, 0.0f, 0.0f},
 	{ PARTICLE_SIZE, PARTICLE_SIZE, 0.0f, 1.0f, 0.0f },
 	{ -PARTICLE_SIZE, -PARTICLE_SIZE, 0.0f,  0.0f, 1.0f },
 	{ PARTICLE_SIZE, -PARTICLE_SIZE, 0.0f, 1.0f, 1.0f }
-#endif
 };
 
 static LPDIRECT3DVERTEXBUFFER9 vtxBuff = NULL, uvBuff = NULL, posBuff = NULL, colorBuff = NULL;
@@ -34,23 +34,31 @@ static LPD3DXEFFECT effect;
 static LPDIRECT3DINDEXBUFFER9 indexBuff;
 static PARTICLE particle[PARTICLE_MAX];
 static int cntParticle = 0;
+static int cntFrame = 0;
 
+/**********************************************
+プロトタイプ宣言
+**********************************************/
 void CopyVtxBuff(unsigned size, void *src, LPDIRECT3DVERTEXBUFFER9 buff);
 float RandomRange(float min, float max);
 void SetParticle(void);
+void SetCircleParticle(void);
 
-LPDIRECT3DVERTEXBUFFER9 hoge = NULL;
-
+/**********************************************
+初期化処理
+**********************************************/
 void InitParticle(void)
 {
 	LPDIRECT3DDEVICE9 pDevice = GetDevice();
-	float offset = PARTICLE_RANGE / 2;
+
 	//配列初期化
 	for (int i = 0; i < PARTICLE_MAX; i++)
 	{
 		particle[i].pos = D3DXVECTOR3(-99999, -99999, -99999);
 		D3DXMatrixIdentity(&pos[i]);
+
 		vtxUV[i].u = vtxUV[i].v = 0.0f;
+
 		vtxColor[i].r = vtxColor[i].g = vtxColor[i].g = 1.0f;
 		vtxColor[i].a = 0.0f;
 
@@ -63,43 +71,13 @@ void InitParticle(void)
 	pDevice->CreateVertexBuffer(sizeof(UV) * PARTICLE_MAX, D3DUSAGE_WRITEONLY, 0, D3DPOOL_MANAGED, &uvBuff, 0);
 	pDevice->CreateVertexBuffer(sizeof(COLOR) * PARTICLE_MAX, D3DUSAGE_WRITEONLY, 0, D3DPOOL_MANAGED, &colorBuff, 0);
 
-#if !USE_SHADER
-	pDevice->CreateVertexBuffer(sizeof(VERTEX_3D) * NUM_VERTEX, D3DUSAGE_WRITEONLY, 0, D3DPOOL_MANAGED, &hoge, 0);
-	VERTEX_3D *pVtx = NULL;
-	hoge->Lock(0, 0, (void**)&pVtx, 0);
-
-	pVtx[0].vtx = D3DXVECTOR3(-PARTICLE_SIZE, 0.0f, PARTICLE_SIZE);
-	pVtx[1].vtx = D3DXVECTOR3(PARTICLE_SIZE, 0.0f, PARTICLE_SIZE);
-	pVtx[2].vtx = D3DXVECTOR3(-PARTICLE_SIZE, 0.0f, -PARTICLE_SIZE);
-	pVtx[3].vtx = D3DXVECTOR3(PARTICLE_SIZE, 0.0f, -PARTICLE_SIZE);
-
-	pVtx[0].nor = pVtx[1].nor = pVtx[2].nor = pVtx[3].nor = D3DXVECTOR3(1.0f, 1.0f, -1.0f);
-	pVtx[0].diffuse = pVtx[1].diffuse = pVtx[2].diffuse = pVtx[3].diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
-
-	pVtx[0].tex = D3DXVECTOR2(0.0f, 0.0f);
-	pVtx[1].tex = D3DXVECTOR2(1.0f, 0.0f);
-	pVtx[2].tex = D3DXVECTOR2(0.0f, 1.0f);
-	pVtx[3].tex = D3DXVECTOR2(1.0f, 1.0f);
-
-	hoge->Unlock();
-#endif
-
+	//頂点バッファにメモリコピー
 	CopyVtxBuff(sizeof(vtx), vtx, vtxBuff);
 	CopyVtxBuff(sizeof(D3DXMATRIX) * PARTICLE_MAX, pos, posBuff);
 	CopyVtxBuff(sizeof(UV) * PARTICLE_MAX, vtxUV, uvBuff);
 	CopyVtxBuff(sizeof(COLOR) * PARTICLE_MAX, vtxColor, colorBuff);
 
-	//頂点宣言作成
-#if 0
-	D3DVERTEXELEMENT9 declareElems[] = {
-		{0, 0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0},
-		{0, 12, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0},
-		{1, 0, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 1},
-		{2, 0, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 2},
-		{3, 0, D3DDECLTYPE_FLOAT4, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_COLOR, 0},
-		D3DDECL_END()
-	};
-#else
+	//宣言作成（シェーダへの引数になる）
 	D3DVERTEXELEMENT9 declareElems[] = {
 		{ 0, 0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
 		{ 0, 12, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0 },
@@ -111,7 +89,6 @@ void InitParticle(void)
 		{ 3, 0, D3DDECLTYPE_FLOAT4, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_COLOR, 0 },
 		D3DDECL_END()
 	};
-#endif
 	pDevice->CreateVertexDeclaration(declareElems, &declare);
 
 	//インデックスバッファ作成
@@ -136,6 +113,9 @@ void InitParticle(void)
 	
 }
 
+/**********************************************
+終了処理
+**********************************************/
 void UninitParticle(void)
 {
 	SAFE_RELEASE(vtxBuff);
@@ -145,133 +125,149 @@ void UninitParticle(void)
 	SAFE_RELEASE(declare);
 	SAFE_RELEASE(texture);
 	SAFE_RELEASE(effect);
-	SAFE_RELEASE(hoge);
 }
 
+/**********************************************
+更新処理
+**********************************************/
 void UpdateParticle(void)
 {
 	PARTICLE *ptr = &particle[0];
 	D3DXMATRIX mtxTranslate, mtxScale;
 
-	for (int i = 0; i < 80; i++)
+	cntFrame++;
+
+	//吸い込まれていくrパーティクルのセット
+	if (cntFrame < 180)
 	{
-		SetParticle();
+		for (int i = 0; i < 80; i++)
+		{
+			SetCircleParticle();
+		}
+	}
+	//弾けるパーティクルのセット
+	else if (cntFrame > 300 && cntFrame < 480)
+	{
+		for (int i = 0; i < 80; i++)
+		{
+			SetParticle();
+		}
+	}
+	//ループ処理
+	else if (cntFrame == 660)
+	{
+		cntFrame = 0;
 	}
 
-
+	//書くパーティクルの更新
 	for (int i = 0; i < PARTICLE_MAX; i++, ptr++)
 	{
-#if 1
 		if (!ptr->active)
 		{
 			continue;
 		}
 
+		//パーティクルの移動、透過
 		ptr->pos += ptr->moveDir * ptr->speed;
 		vtxColor[i].a = (1.0f - (float)ptr->cntFrame / ptr->lifeFrame) * 0.5f;
 		ptr->cntFrame++;
 
+		//寿命が来ていたら見えなくする
 		if (ptr->cntFrame == ptr->lifeFrame)
 		{
 			ptr->pos.z = -10000.0f;
 			cntParticle--;
 			ptr->active = false;
 		}
-#endif
+
+		//座標に応じたワールド変換行列にpos配列を更新
 		D3DXMatrixIdentity(&pos[i]);
+		GetInvCameraRotMtx(&pos[i]);
 		D3DXMatrixScaling(&mtxScale, ptr->scale, ptr->scale, ptr->scale);
 		D3DXMatrixMultiply(&pos[i], &pos[i], &mtxScale);
-		//GetInvCameraRotMtx(&pos[i]);
 		D3DXMatrixTranslation(&mtxTranslate, ptr->pos.x, ptr->pos.y, ptr->pos.z);
 		D3DXMatrixMultiply(&pos[i], &pos[i], &mtxTranslate);
 	}
 
+	//頂点バッファにメモリコピー
 	CopyVtxBuff(sizeof(D3DXMATRIX) * PARTICLE_MAX, pos, posBuff);
 	CopyVtxBuff(sizeof(COLOR) * PARTICLE_MAX, vtxColor, colorBuff);
 
 	PrintDebugProc("Particle:%d\n", cntParticle);
 }
 
+/**********************************************
+描画処理
+**********************************************/
 void DrawParticle(void)
 {
 	LPDIRECT3DDEVICE9 pDevice = GetDevice();
 
 	D3DXMATRIX world, translate, mtxRot;
 
-	pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-	pDevice->SetRenderState(D3DRS_ZWRITEENABLE, false);
+	//αテスト使用
+	pDevice->SetRenderState(D3DRS_ALPHATESTENABLE, true);
+	pDevice->SetRenderState(D3DRS_ALPHAREF, 0);
+	pDevice->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATER);
 
-#if USE_SHADER
+	//ストリーム周波数を設定
 	pDevice->SetStreamSourceFreq(0, D3DSTREAMSOURCE_INDEXEDDATA | (PARTICLE_MAX));
 	pDevice->SetStreamSourceFreq(1, D3DSTREAMSOURCE_INSTANCEDATA | 1);
 	pDevice->SetStreamSourceFreq(2, D3DSTREAMSOURCE_INSTANCEDATA | 1);
 	pDevice->SetStreamSourceFreq(3, D3DSTREAMSOURCE_INSTANCEDATA | 1);
 
+	//頂点宣言設定
 	pDevice->SetVertexDeclaration(declare);
+
+	//ストリームソース設定
 	pDevice->SetStreamSource(0, vtxBuff, 0, sizeof(PARTICLE_VTX));
 	pDevice->SetStreamSource(1, posBuff, 0, sizeof(D3DXMATRIX));
 	pDevice->SetStreamSource(2, uvBuff, 0, sizeof(UV));
 	pDevice->SetStreamSource(3, colorBuff, 0, sizeof(COLOR));
 	pDevice->SetIndices(indexBuff);
 
+	//使用シェーダ設定
 	effect->SetTechnique("tech");
 	UINT passNum = 0;
 	effect->Begin(&passNum, 0);
 	effect->BeginPass(0);
 
+	//シェーダのグローバル変数を設定
 	effect->SetTexture("tex", texture);
 	effect->SetMatrix("mtxView", &GetMtxView());
 	effect->SetMatrix("mtxProj", &GetMtxProjection());
 
+	//インデックスバッファ設定
 	pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 4, 0, 2);
 
-	effect->SetTexture("tex", lumine);
+	//アルファブレンディングで描画
+	pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+	pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 4, 0, 2);
+
+	//加算合成で描画
+	//pDevice->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_REVSUBTRACT);
 	pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
 	pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 4, 0, 2);
 
+	//シェーダ終了宣言
 	effect->EndPass();
 	effect->End();
 
-
+	//ストリーム周波数をもとに戻す
 	pDevice->SetStreamSourceFreq(0, 1);
 	pDevice->SetStreamSourceFreq(1, 1);
 	pDevice->SetStreamSourceFreq(2, 1);
 
+	//アルファテストを戻す
+	pDevice->SetRenderState(D3DRS_ALPHATESTENABLE, false);
+
+	//描画方法をもとに戻す
 	pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-
-
-#else
-
-	for (int i = 0; i < PARTICLE_MAX; i++)
-	{
-		D3DXMatrixIdentity(&world);
-
-		//D3DXMatrixRotationYawPitchRoll(&mtxRot, 0.0f, 0.0f, 0.0f);
-		//D3DXMatrixMultiply(&world, &world, &mtxRot);
-
-		//D3DXMatrixTranslation(&translate, 0.0f, 10.0f, 500.0f);
-		//D3DXMatrixMultiply(&world, &world, &translate);
-
-		D3DXMatrixMultiply(&world, &world, &pos[i]);
-
-		pDevice->SetTransform(D3DTS_WORLD, &world);
-
-		pDevice->SetStreamSource(0, hoge, 0, sizeof(VERTEX_3D));
-
-		pDevice->SetIndices(indexBuff);
-
-		pDevice->SetFVF(FVF_VERTEX_3D);
-
-		pDevice->SetTexture(0, texture);
-
-		pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 4, 0, 2);
-
-		pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-	}
-#endif
-	pDevice->SetRenderState(D3DRS_ZENABLE, true);
 }
 
+/**********************************************
+頂点バッファメモリセット処理
+**********************************************/
 void CopyVtxBuff(unsigned size, void *src, LPDIRECT3DVERTEXBUFFER9 buff)
 {
 	void *p = NULL;
@@ -280,6 +276,9 @@ void CopyVtxBuff(unsigned size, void *src, LPDIRECT3DVERTEXBUFFER9 buff)
 	buff->Unlock();
 }
 
+/**********************************************
+パーティクルセット処理1
+**********************************************/
 void SetParticle(void)
 {
 	PARTICLE *ptr = &particle[0];
@@ -292,17 +291,58 @@ void SetParticle(void)
 		}
 
 		ptr->moveDir = D3DXVECTOR3(RandomRange(-1.0f, 1.0f), RandomRange(-1.0f, 1.0f), RandomRange(-1.0f, 1.0f));
-		ptr->speed = RandomRange(1.0f, 30.0f);
+		ptr->speed = RandomRange(10.0f, 100.0f);
 		ptr->cntFrame = 0;
 		ptr->pos = D3DXVECTOR3(0.0f, 0.0f, 1000.0f);
 		ptr->lifeFrame = rand() % 120 + 60;
-		ptr->scale = RandomRange(0.5f, 3.0f);
+		ptr->scale = RandomRange(0.5f, 10.0f);
 		ptr->active = true;
+
+		vtxColor[i].r = RandomRange(0.0f, 1.0f);
+		vtxColor[i].g = RandomRange(0.0f, 1.0f);
+		vtxColor[i].b = RandomRange(0.0f, 1.0f);
 		cntParticle++;
 		return;
 	}
 }
 
+/**********************************************
+パーティクルセット処理2
+**********************************************/
+void SetCircleParticle(void)
+{
+	PARTICLE *ptr = &particle[0];
+
+	for (int i = 0; i < PARTICLE_MAX; i++, ptr++)
+	{
+		if (ptr->active)
+		{
+			continue;
+		}
+
+		D3DXVECTOR3 dir = D3DXVECTOR3(RandomRange(-1.0f, 1.0f), RandomRange(-1.0f, 1.0f), RandomRange(-1.0f, 1.0f));
+		D3DXVec3Normalize(&dir, &dir);
+
+		ptr->pos = D3DXVECTOR3(0.0f, 0.0f, 1000.0f) + dir * 500;
+
+		ptr->moveDir = dir * -1;
+		ptr->speed = RandomRange(0.5f, 10.0f);
+		ptr->cntFrame = 0;
+		ptr->lifeFrame = rand() % 60 + 60;
+		ptr->scale = RandomRange(0.5f, 10.0f);
+		ptr->active = true;
+
+		vtxColor[i].r = RandomRange(0.0f, 1.0f);
+		vtxColor[i].g = RandomRange(0.0f, 1.0f);
+		vtxColor[i].b = RandomRange(0.0f, 1.0f);
+		cntParticle++;
+		return;
+	}
+}
+
+/**********************************************
+乱数取得関数
+**********************************************/
 float RandomRange(float min, float max)
 {
 	return rand() % 100 / 100.0f *	(max - min) + min;

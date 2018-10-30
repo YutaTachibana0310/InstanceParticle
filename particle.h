@@ -1,21 +1,25 @@
 #include "main.h"
 
+//単位パーティクル構造体
 struct PARTICLE_VTX
 {
 	float x, y, z;
 	float u, v;
 };
 
+//テクスチャ座標構造体
 struct UV
 {
 	float u, v;
 };
 
+//ディフューズ構造体
 struct COLOR
 {
 	float r, g, b, a;
 };
 
+//パーティクルパラメータ構造体
 typedef struct
 {
 	bool active = false;
@@ -28,6 +32,7 @@ typedef struct
 
 }PARTICLE;
 
+//プロトタイプ宣言
 void InitParticle(void);
 void UninitParticle(void);
 void UpdateParticle(void);
