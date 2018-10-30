@@ -37,8 +37,8 @@
 
 #define FVF_PARTICLEVTX (D3DFVF_XYZ | D3DFVF_TEX1)
 
-#define SCREEN_WIDTH	(640)				// ウインドウの幅
-#define SCREEN_HEIGHT	(480)				// ウインドウの高さ
+#define SCREEN_WIDTH	(1280)				// ウインドウの幅
+#define SCREEN_HEIGHT	(960)				// ウインドウの高さ
 #define SCREEN_CENTER_X	(SCREEN_WIDTH / 2)	// ウインドウの中心Ｘ座標
 #define SCREEN_CENTER_Y	(SCREEN_HEIGHT / 2)	// ウインドウの中心Ｙ座標
 
